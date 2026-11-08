@@ -538,7 +538,7 @@ function add_markdown_text(command, textarea_id) {
 	echo "	    <button type='button' class='btn mx-0 mb-1' style='font-size: 16px; line-height: 22px;' onclick=\"add_markdown_text('horizontal_rule','message'); return false;\" title='Horizontal Rule'><i class='fa-solid fa-minus fa-fw'></i></button>\n";
 	echo "  </div>\n";
 
-	echo "  <textarea class='formfld' id='message' name='note_content' style='width: 100%; max-width: 100%; height: 400px; resize: vertical;'>".$note_content."</textarea>\n";
+	echo "  <textarea class='formfld' id='message' name='note_content' style='width: 100%; max-width: 100%; height: 400px; resize: vertical;'>".escape_textarea($note_content ?? '')."</textarea>\n";
 	echo "</td>\n";
 
 	echo "<br />\n";
