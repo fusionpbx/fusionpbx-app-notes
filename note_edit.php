@@ -140,6 +140,24 @@
 				return;
 			}
 
+		//verify the record belongs to the current domain
+			if ($action == "update") {
+				$sql = "select note_uuid from v_notes ";
+				$sql .= "where note_uuid = :note_uuid ";
+				if (!permission_exists('note_all')) {
+					$sql .= "and domain_uuid = :domain_uuid ";
+					$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
+				}
+				$parameters['note_uuid'] = $note_uuid;
+				$row = $database->select($sql, $parameters, 'row');
+				unset($sql, $parameters);
+				if (empty($row)) {
+					message::add('Invalid UUID', 'negative');
+					header('Location: notes.php');
+					exit;
+				}
+			}
+
 		//add the note_uuid
 			if (!is_uuid($_POST["note_uuid"])) {
 				$note_uuid = uuid();
@@ -188,8 +206,10 @@
 		$sql .= " note_content ";
 		$sql .= "from v_notes ";
 		$sql .= "where note_uuid = :note_uuid ";
-		//$sql .= "and domain_uuid = :domain_uuid ";
-		//$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
+		if (!permission_exists('note_all')) {
+			$sql .= "and domain_uuid = :domain_uuid ";
+			$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
+		}
 		$parameters['note_uuid'] = $note_uuid;
 		$row = $database->select($sql, $parameters, 'row');
 		if (is_array($row) && @sizeof($row) != 0) {
@@ -205,7 +225,7 @@
 
 //formatted markdown
 	if (!empty($note_content)) {
-		$note_content_formatted = str_replace('&amp;','&', $parsedown->text($note_content));
+		$note_content_formatted = $parsedown->text($note_content);
 	}
 
 //create token

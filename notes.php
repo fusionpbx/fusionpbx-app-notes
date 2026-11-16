@@ -48,7 +48,7 @@
 //get the http post data
 	if (!empty($_POST['notes']) && is_array($_POST['notes'])) {
 		$action = $_POST['action'];
-		$search = $_POST['search'];
+		$search = is_string($_POST['search'] ?? null) ? $_POST['search'] : '';
 		$notes = $_POST['notes'];
 	}
 
@@ -63,13 +63,44 @@
 			exit;
 		}
 
-		//prepare the array
+		//verify the records belong to the current domain
 		if (!empty($notes)) {
 			foreach ($notes as $row) {
-				$array['notes'][$x]['checked'] = $row['checked'];
-				$array['notes'][$x]['note_uuid'] = $row['note_uuid'];
-				$x++;
+				if (is_uuid($row['note_uuid'])) {
+					$uuids[] = "'" . $row['note_uuid'] . "'";
+				}
 			}
+			if (is_array($uuids) && @sizeof($uuids) != 0) {
+				$sql = "select note_uuid from v_notes ";
+				$sql .= "where note_uuid in (" . implode(', ', $uuids) . ") ";
+				if (!permission_exists('note_all')) {
+					$sql .= "and domain_uuid = :domain_uuid ";
+					$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
+				}
+				$rows = $database->select($sql, $parameters ?? null, 'all');
+				unset($sql, $parameters, $uuids);
+				foreach ($rows as $row) {
+					$allowed[$row['note_uuid']] = true;
+				}
+			}
+		}
+
+		//prepare the array
+		if (!empty($notes)) {
+			$x = 0;
+			foreach ($notes as $row) {
+				if (isset($allowed[$row['note_uuid']])) {
+					$array['notes'][$x]['checked'] = $row['checked'];
+					$array['notes'][$x]['note_uuid'] = $row['note_uuid'];
+					$x++;
+				}
+			}
+		}
+
+		//stop when no selected records belong to the current domain
+		if (empty($array)) {
+			header('Location: notes.php'.($search != '' ? '?search='.urlencode($search) : null));
+			exit;
 		}
 
 		//prepare the database object
